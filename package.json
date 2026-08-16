@@ -1,0 +1,45 @@
+{
+  "name": "campusfind-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "seed": "node seed/index.js",
+    "samples:sync": "node scripts/syncSampleItems.js",
+    "migrate:auto-approve": "node scripts/autoApproveListings.js --apply",
+    "migrate:direct-chats": "node scripts/prepareDirectChats.js",
+    "migrate:complaint-notifications": "node scripts/backfillComplaintNotifications.js",
+    "test": "vitest run --pool=threads --maxWorkers=1 --minWorkers=1",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
+    "compression": "^1.8.1",
+    "cookie": "^1.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.6",
+    "qrcode": "^1.5.4",
+    "sanitize-html": "^2.17.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
+  }
+}
