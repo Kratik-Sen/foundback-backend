@@ -5,8 +5,8 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "dev": "node --watch server.js",
-    "start": "node server.js",
+    "dev": "node --watch local.js",
+    "start": "node local.js",
     "seed": "node seed/index.js",
     "samples:sync": "node scripts/syncSampleItems.js",
     "dashboard-history:sync": "node scripts/syncDashboardHistory.js",

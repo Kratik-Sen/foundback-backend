@@ -51,7 +51,7 @@ app.get('/', (_req, res) => res.json({
   website: process.env.CLIENT_URL || 'http://localhost:5173',
 }));
 
-if (process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'test') {
   app.use('/api', async (_req, _res, next) => {
     try {
       await connectDatabase();
