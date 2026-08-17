@@ -37,6 +37,17 @@ describe('claim and listing workflow guards', () => {
     expect(chat.validateSync()).toBeUndefined();
     expect(chat.claim).toBeUndefined();
   });
+  it('recognizes only recent active chat viewers', () => {
+    const activeUser = new mongoose.Types.ObjectId();
+    const chat = new Chat({
+      item: new mongoose.Types.ObjectId(),
+      participants: [activeUser, new mongoose.Types.ObjectId()],
+      activeViewers: [{ user: activeUser, lastSeenAt: new Date() }],
+    });
+    expect(chat.isActivelyViewedBy(activeUser)).toBe(true);
+    chat.activeViewers[0].lastSeenAt = new Date(Date.now() - 30_000);
+    expect(chat.isActivelyViewedBy(activeUser)).toBe(false);
+  });
   it('keeps rejected and expired listings out of public results', () => {
     expect(isPubliclyVisible({ ...item, approvalStatus: 'rejected' })).toBe(false);
     expect(isPubliclyVisible({ ...item, expiryDate: '2020-01-01' })).toBe(false);

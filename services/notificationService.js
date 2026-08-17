@@ -8,8 +8,8 @@ export function setNotificationSocket(io) {
   socketServer = io;
 }
 
-export async function notify({ recipient, title, message, type, item, claim, complaint, email = false }) {
-  const notification = await Notification.create({ recipient, title, message, type, item, claim, complaint });
+export async function notify({ recipient, title, message, type, item, claim, chat, complaint, email = false }) {
+  const notification = await Notification.create({ recipient, title, message, type, item, claim, chat, complaint });
   socketServer?.to(`user:${recipient}`).emit('notification:new', notification);
 
   if (email) {

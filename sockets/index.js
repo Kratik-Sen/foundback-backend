@@ -84,18 +84,26 @@ export function configureSockets(io) {
         const chat = await Chat.findOne({ _id: chatId, participants: socket.user._id, status: { $ne: 'blocked' } });
         if (!chat || !cleanMessage) throw new Error('Message could not be sent');
         if (cleanMessage.length > 3000) throw new Error('Message must be 3000 characters or fewer');
-        const created = await Message.create({ chat: chatId, sender: socket.user._id, message: cleanMessage, readBy: [socket.user._id] });
+        const roomName = `chat:${chatId}`;
+        const recipient = chat.participants.find((id) => !id.equals(socket.user._id));
+        const recipientSockets = recipient ? await io.in(`user:${recipient}`).fetchSockets() : [];
+        const recipientViewing = Boolean(recipient) && (
+          chat.isActivelyViewedBy(recipient)
+          || recipientSockets.some((entry) => entry.rooms.has(roomName))
+        );
+        const readBy = recipientViewing ? [socket.user._id, recipient] : [socket.user._id];
+        const created = await Message.create({ chat: chatId, sender: socket.user._id, message: cleanMessage, readBy });
         chat.lastMessage = created._id;
         await chat.save();
         await created.populate('sender', 'name role profileImage');
-        const roomName = `chat:${chatId}`;
         await socket.join(roomName);
         io.to(roomName).emit('message:new', created);
         acknowledge({ success: true, message: created });
-        const recipient = chat.participants.find((id) => !id.equals(socket.user._id));
         if (recipient) {
           io.to(`user:${recipient}`).emit('chat:unread-changed', { chatId: chat._id });
-          notify({ recipient, title: 'New chat message', message: `${socket.user.name}: ${created.message}`, type: 'chat_message', item: chat.item, claim: chat.claim }).catch(() => {});
+          if (!recipientViewing) {
+            notify({ recipient, title: 'New chat message', message: `${socket.user.name}: ${created.message}`, type: 'chat_message', item: chat.item, claim: chat.claim, chat: chat._id }).catch(() => {});
+          }
         }
       } catch (error) { acknowledge({ success: false, message: error.message }); }
     });

@@ -2,6 +2,7 @@ import Chat from '../models/Chat.js';
 import Claim from '../models/Claim.js';
 import Item from '../models/Item.js';
 import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
 import { uploadImages } from '../services/cloudinaryService.js';
 import { notify } from '../services/notificationService.js';
 import { ApiError } from '../utils/ApiError.js';
@@ -13,6 +14,26 @@ async function accessibleChat(chatId, user) {
   if (!chat) throw new ApiError(404, 'Chat not found');
   if (!chat.participants.some((id) => id.equals(user._id)) && user.role !== 'admin') throw new ApiError(403, 'You are not a participant in this chat');
   return chat;
+}
+
+async function participantIsViewing(io, chat, userId) {
+  if (chat.isActivelyViewedBy(userId)) return true;
+  if (!io) return false;
+  try {
+    const sockets = await io.in(`user:${userId}`).fetchSockets();
+    return sockets.some((socket) => socket.rooms.has(`chat:${chat._id}`));
+  } catch {
+    return false;
+  }
+}
+
+async function markChatReadFor(chat, userId, io) {
+  await Promise.all([
+    Message.updateMany({ chat: chat._id, readBy: { $ne: userId } }, { $addToSet: { readBy: userId } }),
+    Notification.deleteMany({ recipient: userId, type: 'chat_message', chat: chat._id }),
+  ]);
+  io?.to(`chat:${chat._id}`).emit('messages:read', { chatId: chat._id, userId });
+  io?.to(`user:${userId}`).emit('chat:unread-changed', { chatId: chat._id });
 }
 
 export const startItemContact = asyncHandler(async (req, res) => {
@@ -122,29 +143,50 @@ export const sendMessage = asyncHandler(async (req, res) => {
   if (chat.status === 'blocked') throw new ApiError(403, 'This chat has been blocked');
   const uploads = await uploadImages(req.files || [], 'campusfind/chat');
   if (!req.body.message?.trim() && !uploads.length) throw new ApiError(422, 'Write a message or attach an image');
+  const io = req.app.get('io');
+  const recipient = chat.participants.find((id) => !id.equals(req.user._id));
+  const recipientViewing = recipient ? await participantIsViewing(io, chat, recipient) : false;
+  const readBy = recipientViewing ? [req.user._id, recipient] : [req.user._id];
   const message = await Message.create({
-    chat: chat._id, sender: req.user._id, message: req.body.message?.trim(), image: uploads[0], readBy: [req.user._id],
+    chat: chat._id, sender: req.user._id, message: req.body.message?.trim(), image: uploads[0], readBy,
   });
   chat.lastMessage = message._id;
   await chat.save();
   await message.populate('sender', 'name role profileImage');
-  const io = req.app.get('io');
   io?.to(`chat:${chat._id}`).emit('message:new', message);
-  const recipient = chat.participants.find((id) => !id.equals(req.user._id));
   if (recipient) {
     io?.to(`user:${recipient}`).emit('chat:unread-changed', { chatId: chat._id });
-    await notify({ recipient, title: 'New chat message', message: `${req.user.name}: ${message.message || 'Sent an image'}`, type: 'chat_message', item: chat.item, claim: chat.claim });
+    if (!recipientViewing) {
+      await notify({ recipient, title: 'New chat message', message: `${req.user.name}: ${message.message || 'Sent an image'}`, type: 'chat_message', item: chat.item, claim: chat.claim, chat: chat._id });
+    }
   }
   res.status(201).json({ success: true, message });
 });
 
 export const markRead = asyncHandler(async (req, res) => {
-  await accessibleChat(req.params.id, req.user);
-  await Message.updateMany({ chat: req.params.id, readBy: { $ne: req.user._id } }, { $addToSet: { readBy: req.user._id } });
+  const chat = await accessibleChat(req.params.id, req.user);
   const io = req.app.get('io');
-  io?.to(`chat:${req.params.id}`).emit('messages:read', { chatId: req.params.id, userId: req.user._id });
-  io?.to(`user:${req.user._id}`).emit('chat:unread-changed', { chatId: req.params.id });
+  await markChatReadFor(chat, req.user._id, io);
   res.json({ success: true });
+});
+
+export const setActive = asyncHandler(async (req, res) => {
+  const chat = await accessibleChat(req.params.id, req.user);
+  const active = req.body.active !== false;
+  await Chat.updateOne(
+    { _id: chat._id },
+    { $pull: { activeViewers: { user: req.user._id } } },
+    { timestamps: false },
+  );
+  if (active) {
+    await Chat.updateOne(
+      { _id: chat._id },
+      { $push: { activeViewers: { user: req.user._id, lastSeenAt: new Date() } } },
+      { timestamps: false },
+    );
+  }
+  if (active) await markChatReadFor(chat, req.user._id, req.app.get('io'));
+  res.json({ success: true, active });
 });
 
 export const blockChat = asyncHandler(async (req, res) => {

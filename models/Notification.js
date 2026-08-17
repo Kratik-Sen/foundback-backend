@@ -8,6 +8,7 @@ const notificationSchema = new mongoose.Schema(
     type: { type: String, required: true, index: true },
     item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
     claim: { type: mongoose.Schema.Types.ObjectId, ref: 'Claim' },
+    chat: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat', index: true },
     complaint: { type: mongoose.Schema.Types.ObjectId, ref: 'Complaint' },
     read: { type: Boolean, default: false, index: true },
   },

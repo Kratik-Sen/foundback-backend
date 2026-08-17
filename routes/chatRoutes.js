@@ -13,6 +13,7 @@ router.post('/items/:itemId/contact', objectIdValidator('itemId'), validate, cha
 router.get('/:id', objectIdValidator(), validate, chats.getChat);
 router.get('/:id/messages', objectIdValidator(), validate, chats.getMessages);
 router.post('/:id/messages', upload.array('images', 1), objectIdValidator(), validate, chats.sendMessage);
+router.patch('/:id/active', objectIdValidator(), validate, chats.setActive);
 router.patch('/:id/read', objectIdValidator(), validate, chats.markRead);
 router.patch('/:id/block', objectIdValidator(), validate, chats.blockChat);
 
