@@ -49,6 +49,7 @@ describe('input validation', () => {
       .get('/error')
       .expect(500);
     expect(response.body.message).toBe('Something went wrong. Please try again in a moment.');
+    expect(response.body).not.toHaveProperty('stack');
   });
 
   it('rejects future item dates and short descriptions', async () => {

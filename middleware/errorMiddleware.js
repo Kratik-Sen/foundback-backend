@@ -53,6 +53,5 @@ export function errorHandler(error, _req, res, _next) {
     success: false,
     message,
     ...(error.details ? { errors: error.details } : {}),
-    ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
   });
 }
