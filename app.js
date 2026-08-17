@@ -1,3 +1,4 @@
+import './config/env.js';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -20,6 +21,7 @@ import itemRoutes from './routes/itemRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
+import { connectDatabase } from './config/database.js';
 
 const app = express();
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +42,25 @@ app.use((req, _res, next) => {
 });
 if (process.env.NODE_ENV !== 'test') app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 500, standardHeaders: 'draft-8', legacyHeaders: false }));
+
+app.get('/', (_req, res) => res.json({
+  success: true,
+  service: 'FoundBack API',
+  api: '/api',
+  health: '/api/health',
+  website: process.env.CLIENT_URL || 'http://localhost:5173',
+}));
+
+if (process.env.VERCEL) {
+  app.use('/api', async (_req, _res, next) => {
+    try {
+      await connectDatabase();
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+}
 
 app.get('/api/health', (_req, res) => res.json({ success: true, service: 'FoundBack API', timestamp: new Date().toISOString() }));
 app.get('/api', (_req, res) => res.json({

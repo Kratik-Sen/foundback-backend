@@ -6,6 +6,11 @@ process.env.JWT_SECRET = 'test-secret-with-sufficient-length';
 const { default: app } = await import('../app.js');
 
 describe('API foundation', () => {
+  it('describes the API at the root URL', async () => {
+    const response = await request(app).get('/').expect(200);
+    expect(response.body).toMatchObject({ success: true, service: 'FoundBack API', api: '/api' });
+  });
+
   it('returns a structured health response', async () => {
     const response = await request(app).get('/api/health').expect(200);
     expect(response.body.success).toBe(true);
