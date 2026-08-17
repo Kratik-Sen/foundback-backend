@@ -101,7 +101,21 @@ export const resetPassword = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  Object.assign(req.user, pick(req.body, ['name', 'phone', 'course', 'branch', 'semester']));
+  const updates = pick(req.body, ['name', 'phone', 'course', 'branch']);
+  Object.assign(req.user, updates);
+
+  if (Object.hasOwn(req.body, 'semester')) {
+    const rawSemester = req.body.semester;
+    if (rawSemester === '' || rawSemester === null || rawSemester === 'null') {
+      req.user.semester = undefined;
+    } else {
+      const semester = Number(rawSemester);
+      if (!Number.isInteger(semester) || semester < 1 || semester > 12) {
+        throw new ApiError(422, 'Choose a semester between 1 and 12');
+      }
+      req.user.semester = semester;
+    }
+  }
   if (req.file) {
     const [profileImage] = await uploadImages([req.file], 'campusfind/profiles');
     await deleteImages(req.user.profileImage?.url ? [req.user.profileImage] : []);

@@ -15,10 +15,40 @@ function validatorApp(path, validators) {
   return app;
 }
 
+function errorApp(error) {
+  const app = express();
+  app.get('/error', (_req, _res, next) => next(error));
+  app.use(errorHandler);
+  return app;
+}
+
 describe('input validation', () => {
   it('rejects weak registration credentials and mismatched passwords', async () => {
     const response = await request(validatorApp('/register', registerValidator)).post('/register').send({ name: 'A', email: 'invalid', enrollmentNumber: '', password: 'short', confirmPassword: 'different' }).expect(422);
     expect(response.body.errors.length).toBeGreaterThan(2);
+  });
+
+  it('replaces database casting details with a readable field message', async () => {
+    const error = new Error('User validation failed');
+    error.name = 'ValidationError';
+    error.errors = {
+      semester: {
+        name: 'CastError',
+        path: 'semester',
+        message: 'Cast to Number failed for value "null" at path "semester"',
+      },
+    };
+
+    const response = await request(errorApp(error)).get('/error').expect(422);
+    expect(response.body.message).toBe('Enter a valid value for semester');
+    expect(response.body.message).not.toContain('Cast to');
+  });
+
+  it('does not expose unexpected server errors to clients', async () => {
+    const response = await request(errorApp(new Error('MongoServerError: private diagnostic details')))
+      .get('/error')
+      .expect(500);
+    expect(response.body.message).toBe('Something went wrong. Please try again in a moment.');
   });
 
   it('rejects future item dates and short descriptions', async () => {
