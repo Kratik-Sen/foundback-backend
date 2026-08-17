@@ -9,6 +9,7 @@
     "start": "node server.js",
     "seed": "node seed/index.js",
     "samples:sync": "node scripts/syncSampleItems.js",
+    "dashboard-history:sync": "node scripts/syncDashboardHistory.js",
     "migrate:auto-approve": "node scripts/autoApproveListings.js --apply",
     "migrate:direct-chats": "node scripts/prepareDirectChats.js",
     "migrate:complaint-notifications": "node scripts/backfillComplaintNotifications.js",

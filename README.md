@@ -135,13 +135,12 @@ Open `http://localhost:5173` for hot-reload development. After `npm run build`, 
 | `ALLOW_TEST_EMAILS` | Allow arbitrary emails outside production |
 | `LISTING_EXPIRY_DAYS` | New report lifetime |
 | `MAX_IMAGE_SIZE_MB` | Per-image upload limit |
-| `SEED_PASSWORD` | Optional local demo password; required and at least 8 characters for production seeding |
 
 Actual credentials must stay in `.env`; that file is ignored by Git.
 
 ## Demo login credentials
 
-When `SEED_PASSWORD` is empty during local development, the seed command uses `CampusFind@2026`. Setting a different value of at least eight characters applies that password to every demo account.
+The local seed command uses `CampusFind@2026` for every demo account and is disabled in production.
 
 | Role | Email | Password |
 |---|---|---|

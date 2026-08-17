@@ -122,11 +122,8 @@ function itemFromTemplate(template, reportType, reporter, index) {
 
 async function seed() {
   if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is required');
-  const configuredSeedPassword = process.env.SEED_PASSWORD?.trim();
-  if (process.env.NODE_ENV === 'production' && (!configuredSeedPassword || configuredSeedPassword.length < 8)) {
-    throw new Error('Set SEED_PASSWORD to at least 8 characters before production seeding');
-  }
-  const seedPassword = configuredSeedPassword?.length >= 8 ? configuredSeedPassword : 'CampusFind@2026';
+  if (process.env.NODE_ENV === 'production') throw new Error('Demo database seeding is disabled in production');
+  const seedPassword = 'CampusFind@2026';
   await connectDatabase();
 
   const models = [AdminLog, Announcement, Bookmark, CampusLocation, Category, Chat, Claim, Complaint, ContactMessage, Handover, Item, Match, Message, Notification, Setting, Testimonial, User];
