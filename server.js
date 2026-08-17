@@ -5,7 +5,12 @@ import app from './app.js';
 import { connectDatabase } from './config/database.js';
 import { startExpiryJob } from './jobs/expiryJob.js';
 import { configureSockets } from './sockets/index.js';
+import dns from 'dns'
 
+dns.setServers([
+  '8.8.8.8',
+  '1.1.1.1'
+])
 const required = ['MONGODB_URI', 'JWT_SECRET'];
 const missing = required.filter((key) => !process.env[key]);
 if (missing.length) {
