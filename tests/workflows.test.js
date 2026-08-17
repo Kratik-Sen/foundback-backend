@@ -37,6 +37,19 @@ describe('claim and listing workflow guards', () => {
     expect(chat.validateSync()).toBeUndefined();
     expect(chat.claim).toBeUndefined();
   });
+  it('supports a private administrator-to-claimant chat', () => {
+    const claimId = new mongoose.Types.ObjectId();
+    const chat = new Chat({
+      adminClaim: claimId,
+      item: new mongoose.Types.ObjectId(),
+      participants: [new mongoose.Types.ObjectId(), new mongoose.Types.ObjectId()],
+      kind: 'admin_claim',
+      contactKey: `admin-claim:${claimId}:admin:claimant`,
+    });
+    expect(chat.validateSync()).toBeUndefined();
+    expect(chat.claim).toBeUndefined();
+    expect(chat.adminClaim).toEqual(claimId);
+  });
   it('recognizes only recent active chat viewers', () => {
     const activeUser = new mongoose.Types.ObjectId();
     const chat = new Chat({

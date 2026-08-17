@@ -3,9 +3,10 @@ import mongoose from 'mongoose';
 const chatSchema = new mongoose.Schema(
   {
     claim: { type: mongoose.Schema.Types.ObjectId, ref: 'Claim' },
+    adminClaim: { type: mongoose.Schema.Types.ObjectId, ref: 'Claim', index: true },
     item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true, index: true },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
-    kind: { type: String, enum: ['claim', 'item_contact'], default: 'claim', index: true },
+    kind: { type: String, enum: ['claim', 'item_contact', 'admin_claim'], default: 'claim', index: true },
     contactKey: { type: String, trim: true },
     lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
     status: { type: String, enum: ['active', 'blocked', 'closed', 'reported'], default: 'active' },

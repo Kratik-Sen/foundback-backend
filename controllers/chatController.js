@@ -12,7 +12,7 @@ import { pagination } from '../utils/query.js';
 async function accessibleChat(chatId, user) {
   const chat = await Chat.findById(chatId);
   if (!chat) throw new ApiError(404, 'Chat not found');
-  if (!chat.participants.some((id) => id.equals(user._id)) && user.role !== 'admin') throw new ApiError(403, 'You are not a participant in this chat');
+  if (!chat.participants.some((id) => id.equals(user._id))) throw new ApiError(403, 'You are not a participant in this chat');
   return chat;
 }
 
@@ -94,6 +94,52 @@ export const startItemContact = asyncHandler(async (req, res) => {
   });
 });
 
+export const startAdminClaimContact = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') throw new ApiError(403, 'Only an administrator can start this conversation');
+  const claim = await Claim.findById(req.params.claimId).populate('item', 'title');
+  if (!claim || !claim.item) throw new ApiError(404, 'Claim not found');
+  if (claim.claimant.equals(req.user._id)) throw new ApiError(409, 'You cannot start a claim review chat with yourself');
+
+  const participantIds = [String(req.user._id), String(claim.claimant)].sort();
+  const contactKey = `admin-claim:${claim._id}:${participantIds.join(':')}`;
+  let chat = await Chat.findOne({ contactKey });
+  let created = false;
+
+  if (!chat) {
+    try {
+      chat = await Chat.create({
+        adminClaim: claim._id,
+        item: claim.item._id,
+        participants: [req.user._id, claim.claimant],
+        kind: 'admin_claim',
+        contactKey,
+      });
+      created = true;
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      chat = await Chat.findOne({ contactKey });
+    }
+  }
+
+  if (created) {
+    await notify({
+      recipient: claim.claimant,
+      title: 'Administrator opened a secure chat',
+      message: `The campus administrator opened a chat about your claim for “${claim.item.title}”.`,
+      type: 'admin_claim_chat_started',
+      item: claim.item._id,
+      claim: claim._id,
+      chat: chat._id,
+    });
+  }
+
+  res.status(created ? 201 : 200).json({
+    success: true,
+    chatId: chat._id,
+    message: created ? 'Secure claimant chat started' : 'Opening the existing claimant chat',
+  });
+});
+
 export const getChats = asyncHandler(async (req, res) => {
   const chats = await Chat.find({ participants: req.user._id })
     .populate('participants', 'name role profileImage')
@@ -157,7 +203,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   if (recipient) {
     io?.to(`user:${recipient}`).emit('chat:unread-changed', { chatId: chat._id });
     if (!recipientViewing) {
-      await notify({ recipient, title: 'New chat message', message: `${req.user.name}: ${message.message || 'Sent an image'}`, type: 'chat_message', item: chat.item, claim: chat.claim, chat: chat._id });
+      await notify({ recipient, title: 'New chat message', message: `${req.user.name}: ${message.message || 'Sent an image'}`, type: 'chat_message', item: chat.item, claim: chat.claim || chat.adminClaim, chat: chat._id });
     }
   }
   res.status(201).json({ success: true, message });

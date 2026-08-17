@@ -49,7 +49,7 @@ export function configureSockets(io) {
     socket.on('chat:join', async (chatId, acknowledge = () => {}) => {
       try {
         const chat = await Chat.findById(chatId);
-        const allowed = chat?.participants.some((id) => id.equals(socket.user._id)) || socket.user.role === 'admin';
+        const allowed = chat?.participants.some((id) => id.equals(socket.user._id));
         if (!allowed) throw new Error('Chat access denied');
         const roomName = `chat:${chatId}`;
         for (const room of socket.rooms) {
@@ -102,7 +102,7 @@ export function configureSockets(io) {
         if (recipient) {
           io.to(`user:${recipient}`).emit('chat:unread-changed', { chatId: chat._id });
           if (!recipientViewing) {
-            notify({ recipient, title: 'New chat message', message: `${socket.user.name}: ${created.message}`, type: 'chat_message', item: chat.item, claim: chat.claim, chat: chat._id }).catch(() => {});
+            notify({ recipient, title: 'New chat message', message: `${socket.user.name}: ${created.message}`, type: 'chat_message', item: chat.item, claim: chat.claim || chat.adminClaim, chat: chat._id }).catch(() => {});
           }
         }
       } catch (error) { acknowledge({ success: false, message: error.message }); }

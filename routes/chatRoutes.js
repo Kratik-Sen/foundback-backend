@@ -10,6 +10,7 @@ router.use(protect);
 router.get('/', chats.getChats);
 router.get('/unread-count', chats.getUnreadCount);
 router.post('/items/:itemId/contact', objectIdValidator('itemId'), validate, chats.startItemContact);
+router.post('/claims/:claimId/admin-contact', objectIdValidator('claimId'), validate, chats.startAdminClaimContact);
 router.get('/:id', objectIdValidator(), validate, chats.getChat);
 router.get('/:id/messages', objectIdValidator(), validate, chats.getMessages);
 router.post('/:id/messages', upload.array('images', 1), objectIdValidator(), validate, chats.sendMessage);
